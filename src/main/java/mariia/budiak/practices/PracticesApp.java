@@ -12,8 +12,10 @@ import java.security.Security;
 @SpringBootApplication
 public class PracticesApp {
 
+
     public static void main(String[] args) {
         Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         SpringApplication.run(PracticesApp.class, args);
+
     }
 }
