@@ -3,60 +3,41 @@ package mariia.budiak.practices.service;
 import com.sun.jna.Library;
 import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Advapi32;
+import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.WinReg;
-import com.sun.jna.ptr.IntByReference;
 import org.springframework.stereotype.Service;
-import com.sun.jna.ptr.PointerByReference;
-
-
-import javax.annotation.PostConstruct;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.sun.jna.platform.win32.WinNT.KEY_READ;
-import static com.sun.jna.platform.win32.WinReg.HKEY_LOCAL_MACHINE;
-
 @Service
 public class RegistryService {
-    @PostConstruct
-    public void init(){
-        getUserInformation();
-    }
 
 
-
-
-    private static final int KEY_READ = 0x20019; // Права доступа для чтения (HKEY_READ)
-    private static final int HKEY_LOCAL_MACHINE = 0x80000002; // Корневой ключ реестра
-
-    public List<String> getUserInformation() {
+    public List<String> getUserInformation(String registryPath) {
         List<String> users = new ArrayList<>();
-        var hKey = new WinReg.HKEYByReference();
+        try {
+            String[] userKeys = Advapi32Util.registryGetKeys(WinReg.HKEY_LOCAL_MACHINE, registryPath);
+            for (String userKey : userKeys) {
+                String userPath = registryPath + "\\" + userKey;
 
+                // Извлечение значений
+                String profileImagePath = Advapi32Util.registryGetStringValue(WinReg.HKEY_LOCAL_MACHINE, userPath, "ProfileImagePath");
+                String username = profileImagePath != null ? profileImagePath.replaceAll("C:\\\\Users\\\\", "") : "Unknown";
 
-        // Открыть ключ, содержащий информацию о пользователях. Измените путь в зависимости от системы
-        String userKeyPath = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList";
+                String flags = Advapi32Util.registryGetValue(WinReg.HKEY_LOCAL_MACHINE, userPath, "Flags") == null ? "No" : "Yes";
+                String lastWriteTime = Advapi32Util.registryGetValue(WinReg.HKEY_LOCAL_MACHINE, userPath, "LastWriteTime") == null ? null :
+                        Advapi32Util.registryGetValue(WinReg.HKEY_LOCAL_MACHINE, userPath, "LastWriteTime").toString();
 
-        if (Advapi32.INSTANCE.RegOpenKeyEx(WinReg.HKEY_LOCAL_MACHINE, userKeyPath, 0, KEY_READ, hKey) == 0) {
-            int index = 0;
-            IntByReference lpcbName = new IntByReference();
-            byte[] lpName = new byte[256];
-
-            // Перебираем ключи, чтобы получить информацию о пользователях
-            while (Advapi32.INSTANCE.RegEnumKeyEx(hKey.getValue(), index, lpName, lpcbName, null, null, null, null) == 0) {
-                String userSid = Native.toString(lpName, String.valueOf(0));
-                users.add(userSid);
-                index++;
+                // Формируем строку с информацией о пользователе
+                String userInfo = String.format("User SID: %s, Username: %s, Profile Image Path: %s, Flags: %s, Last Write Time: %s",
+                        userKey, username, profileImagePath, flags, lastWriteTime);
+                users.add(userInfo);
             }
-
-            // Закрываем ключ после обработки
-            Advapi32.INSTANCE.RegCloseKey(hKey.getValue());
-        } else {
-            System.out.println("Не удалось открыть ключ реестра");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-
         return users;
     }
 }
 
-    // Добавьте аналогичные методы для других типов информации
+// Добавьте аналогичные методы для других типов информации
