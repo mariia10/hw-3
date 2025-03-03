@@ -28,6 +28,7 @@ public class RegistryLocalHostInfoService {
         constOsValue.put("SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", new String[]{"TimeZone"});
     }
 
+
     public interface Advapi32 extends Library {
         Advapi32 INSTANCE = Native.load("advapi32", Advapi32.class);
 
@@ -205,27 +206,141 @@ public class RegistryLocalHostInfoService {
 
         var resultList = new ArrayList<String>();
 
+        // Определяем ключи реестра для получения информации о системе
         String systemManufacturerKey = "SYSTEM\\CurrentControlSet\\Control\\SystemInformation";
         String systemProductNameKey = "SYSTEM\\CurrentControlSet\\Control\\SystemInformation";
         String driverDescKey = "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000";
 
+        // Определяем ключи для процессора
+        String cpuKey = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0"; // Используем 0 для первого процессора
+        String scsiKey = "HARDWARE\\DEVICEMAP\\Scsi";
+
         // Получаем значения из реестра
         try {
+            // Чтение информации о системе
             String systemManufacturer = Advapi32Util.registryGetStringValue(
                     WinReg.HKEY_LOCAL_MACHINE, systemManufacturerKey, "SystemManufacturer");
+            resultList.add("System Manufacturer: " + systemManufacturer);
+
+        } catch (Exception e) {
+            resultList.add("System Manufacturer: " + e.getMessage());
+
+        }
+        try {
             String systemProductName = Advapi32Util.registryGetStringValue(
                     WinReg.HKEY_LOCAL_MACHINE, systemProductNameKey, "SystemProductName");
+            resultList.add("System Product Name: " + systemProductName);
+
+        } catch (Exception ex) {
+            resultList.add("System Product Name: " + ex.getMessage());
+
+        }
+        try {
             String driverDesc = Advapi32Util.registryGetStringValue(
                     WinReg.HKEY_LOCAL_MACHINE, driverDescKey, "DriverDesc");
-
-            // Выводим полученные значения
-            resultList.add("System Manufacturer: " + systemManufacturer);
-            resultList.add("System Product Name: " + systemProductName);
             resultList.add("Driver Description: " + driverDesc);
-        } catch (Exception e) {
-            resultList.add("Error reading registry: " + e.getMessage());
+
+        } catch (Exception ex) {
+            resultList.add("Driver Description: " + ex.getMessage());
+
         }
+        try {
+            String processorName = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, cpuKey, "ProcessorNameString");
+            resultList.add("Processor Name: " + processorName);
+        } catch (Exception e) {
+            resultList.add("Processor Name: " + e.getMessage());
+
+        }
+        try {
+            String identifier = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, cpuKey, "Identifier");
+            resultList.add("Processor Identifier: " + identifier);
+        } catch (Exception ex) {
+            resultList.add("Processor Identifier: " + ex.getMessage());
+
+        }
+        try {
+            String vendorIdentifier = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, cpuKey, "VendorIdentifier");
+            resultList.add("Vendor Identifier: " + vendorIdentifier);
+
+        } catch (Exception ex) {
+            resultList.add("Vendor Identifier: " + ex.getMessage());
+        }
+
+        try {
+            String mhz = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, cpuKey, "~MHz");
+            resultList.add("Clock Speed (MHz): " + mhz);
+        } catch (Exception e) {
+            resultList.add("Clock Speed (MHz): " + e.getMessage());
+        }
+        try {
+            String scsiIdentifier = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, scsiKey, "Identifier");
+            resultList.add("SCSI Identifier: " + scsiIdentifier);
+        } catch (Exception e) {
+            resultList.add("SCSI Identifier: " + e.getMessage());
+
+        }
+        try {
+            String serialNumber = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, scsiKey, "SerialNumber");
+
+            resultList.add("SCSI Serial Number: " + serialNumber);
+
+        } catch (Exception ex) {
+            resultList.add("SCSI Serial Number: " + ex.getMessage());
+
+        }
+
         return resultList;
     }
+
+    public List<String> getSoftWareInfo() {
+        List<String> registryEntries = new ArrayList<>();
+        String registryPathLocalMachine = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+        String registryPathCurrentUser = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+
+        addInstalledProgramsFromRegistry(registryPathLocalMachine, registryEntries, WinReg.HKEY_LOCAL_MACHINE);
+
+        addInstalledProgramsFromRegistry(registryPathCurrentUser, registryEntries, WinReg.HKEY_CURRENT_USER);
+
+        return registryEntries;
+    }
+
+    private void addInstalledProgramsFromRegistry(String registryPath, List<String> registryEntries, WinReg.HKEY hive) {
+        String[] subKeys = Advapi32Util.registryGetKeys(hive, registryPath);
+        for (String subKey : subKeys) {
+            try {
+                var valueNames = Advapi32Util.registryGetValues(hive, registryPath + "\\" + subKey);
+                String programName = null;
+                String vendor = null;
+
+                // Извлекаем название программы и вендора
+                if (valueNames.containsKey("DisplayName")) {
+                    programName = Advapi32Util.registryGetStringValue(hive, registryPath + "\\" + subKey, "DisplayName");
+                }
+                if (valueNames.containsKey("Publisher")) {
+                    vendor = Advapi32Util.registryGetStringValue(hive, registryPath + "\\" + subKey, "Publisher");
+                }
+
+                // Если программа имеет название, добавляем информацию в список
+                if (programName != null) {
+                    registryEntries.add("Program: " + programName + " | Vendor: " + (vendor != null ? vendor : "N/A"));
+                }
+            } catch (Exception e) {
+                System.err.println("Error accessing the registry: " + e.getMessage());
+            }
+        }
+    }
+
+
 }
+
+
+
+
+
 

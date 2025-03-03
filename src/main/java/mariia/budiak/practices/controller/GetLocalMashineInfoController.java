@@ -54,6 +54,12 @@ public class GetLocalMashineInfoController {
         return registryService.getHardWareInfo();
     }
 
+    @GetMapping("/softwareInfo")
+    @ApiOperation(value = "Вся информация о SOFTWARE")
+    public List<String> getSoftWareInformation() {
+        return registryService.getSoftWareInfo();
+    }
+
 }
 
 
