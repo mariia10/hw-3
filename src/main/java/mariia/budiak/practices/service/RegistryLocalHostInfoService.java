@@ -300,12 +300,12 @@ public class RegistryLocalHostInfoService {
 
     public List<String> getSoftWareInfo() {
         List<String> registryEntries = new ArrayList<>();
-        String registryPathLocalMachine = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
-        String registryPathCurrentUser = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
+        //из системного реестра, так и из реестра текущего пользователя.
+        String registryPath = "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall";
 
-        addInstalledProgramsFromRegistry(registryPathLocalMachine, registryEntries, WinReg.HKEY_LOCAL_MACHINE);
+        addInstalledProgramsFromRegistry(registryPath, registryEntries, WinReg.HKEY_LOCAL_MACHINE);
 
-        addInstalledProgramsFromRegistry(registryPathCurrentUser, registryEntries, WinReg.HKEY_CURRENT_USER);
+        addInstalledProgramsFromRegistry(registryPath, registryEntries, WinReg.HKEY_CURRENT_USER);
 
         return registryEntries;
     }
