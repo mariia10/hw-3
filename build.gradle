@@ -76,10 +76,10 @@ dependencies {
     compileOnly 'org.projectlombok:lombok:1.18.28'
     annotationProcessor 'org.projectlombok:lombok:1.18.28'
     annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
-    implementation 'net.java.dev.jna:jna:5.10.0' // Добавьте JNA
+   implementation("net.java.dev.jna:jna:5.8.0")
 // https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform
-    implementation 'net.java.dev.jna:jna-platform:5.10.0'
-    implementation("net.java.dev.jna:jna:5.10.0")
+    implementation 'net.java.dev.jna:jna-platform:5.8.0'
+
 
 
 

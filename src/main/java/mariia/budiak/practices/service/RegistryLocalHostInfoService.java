@@ -1,16 +1,14 @@
 package mariia.budiak.practices.service;
 
-import com.sun.jna.Library;
-import com.sun.jna.Native;
-import com.sun.jna.platform.win32.Advapi32;
 import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.WinReg;
 import org.springframework.stereotype.Service;
+
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class RegistryService {
+public class RegistryLocalHostInfoService {
 
 
     public List<String> getUserInformation(String registryPath) {
@@ -37,6 +35,35 @@ public class RegistryService {
             e.printStackTrace();
         }
         return users;
+    }
+
+    public List<String> getNetInfo(String registryPath) {
+        List<String> parameters = new ArrayList<>();
+        // Перечень значений, которые мы хотим получить
+        List<String> valuesToRetrieve = List.of(
+                "DhcpIPAddress",
+                "DhcpNameServer",
+                "DhcpServer",
+                "DhcpSubnetMask",
+                "Domain",
+                "DhcpDefaultGateway"
+        );
+
+        // Получаем и выводим значения
+        for (String valueName : valuesToRetrieve) {
+            try {
+                String value = Advapi32Util.registryGetStringValue(
+                        WinReg.HKEY_LOCAL_MACHINE,
+                        registryPath,
+                        valueName
+                );
+                parameters.add(valueName + ": " + value);
+            } catch (RuntimeException e) {
+                parameters.add(valueName + " not found. Error: " + e.getMessage());
+
+            }
+        }
+        return parameters;
     }
 }
 
