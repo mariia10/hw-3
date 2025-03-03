@@ -200,5 +200,32 @@ public class RegistryLocalHostInfoService {
         }
         return resultMap;
     }
+
+    public List<String> getHardWareInfo() {
+
+        var resultList = new ArrayList<String>();
+
+        String systemManufacturerKey = "SYSTEM\\CurrentControlSet\\Control\\SystemInformation";
+        String systemProductNameKey = "SYSTEM\\CurrentControlSet\\Control\\SystemInformation";
+        String driverDescKey = "SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}\\0000";
+
+        // Получаем значения из реестра
+        try {
+            String systemManufacturer = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, systemManufacturerKey, "SystemManufacturer");
+            String systemProductName = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, systemProductNameKey, "SystemProductName");
+            String driverDesc = Advapi32Util.registryGetStringValue(
+                    WinReg.HKEY_LOCAL_MACHINE, driverDescKey, "DriverDesc");
+
+            // Выводим полученные значения
+            resultList.add("System Manufacturer: " + systemManufacturer);
+            resultList.add("System Product Name: " + systemProductName);
+            resultList.add("Driver Description: " + driverDesc);
+        } catch (Exception e) {
+            resultList.add("Error reading registry: " + e.getMessage());
+        }
+        return resultList;
+    }
 }
 
