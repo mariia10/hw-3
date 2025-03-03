@@ -21,7 +21,6 @@ public class GetLocalMashineInfoController {
 
     private static final String DEFAULT_REGISTRY_PATH = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList";
     private static final String DEFAULT_INTERFACE_PATH = "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\ProfileList";
-    private static final int KEY_READ = 0x20019; // Определяем KEY_READ
 
 
     @GetMapping("/userInformation")
@@ -65,6 +64,12 @@ public class GetLocalMashineInfoController {
     @ApiOperation(value = "Вся информация об операционной системе")
     public HashMap<String, List<String>> getOperationSystemInformation() {
         return registryService.getInformationSystemInfo();
+    }
+
+    @GetMapping("/biosInfo")
+    @ApiOperation(value = "Вся информация о BIOS")
+    public HashMap<String, List<String>> getBiosInformation() {
+        return registryService.getBiosInfo();
     }
 
 }

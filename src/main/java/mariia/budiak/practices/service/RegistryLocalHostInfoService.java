@@ -17,6 +17,8 @@ public class RegistryLocalHostInfoService {
 
     private static final Map<String, String[]> constOsValue = new HashMap<>();
 
+    private static final int KEY_READ = 0x20019; // Определяем KEY_READ
+
     public static final int HKEY_LOCAL_MACHINE = 0x80000002;
 
     static {
@@ -160,6 +162,43 @@ public class RegistryLocalHostInfoService {
 
         return Native.toString(data);
     }
+
+    public HashMap<String, List<String>> getBiosInfo() {
+        var resultMap = new HashMap<String, List<String>>();
+        // Словарь с путями реестра и и ключами
+        Map<String, List<String>> constBiosValue = new HashMap<>();
+        constBiosValue.put("HARDWARE\\DESCRIPTION\\System",
+                List.of("SystemBiosVersion", "SystemBiosDate", "VideoBiosVersion"));
+        constBiosValue.put("HARDWARE\\DESCRIPTION\\System\\BIOS",
+                List.of("BIOSVendor", "BIOSVersion", "BIOSReleaseDate"));
+        constBiosValue.put("SYSTEM\\CurrentControlSet\\Control\\SystemInformation",
+                List.of("BIOSVersion", "BIOSReleaseDate"));
+
+        // Чтение значений из реестра
+        for (Map.Entry<String, List<String>> entry : constBiosValue.entrySet()) {
+            String registryPath = entry.getKey();
+            List<String> keys = entry.getValue();
+            resultMap.put(registryPath, new ArrayList<>());
+            try {
+                var hKey = Advapi32Util.registryGetKey(
+                        WinReg.HKEY_LOCAL_MACHINE,
+                        registryPath,
+                        KEY_READ);
+
+                for (String key : keys) {
+                    try {
+                        String value = Advapi32Util.registryGetStringValue(hKey.getValue(), key);
+                        resultMap.get(registryPath).add(key + ": " + value);
+                    } catch (Exception e) {
+                        resultMap.get(registryPath).add(key + ": error " + e.getMessage());
+                    }
+                }
+                Advapi32Util.registryCloseKey(hKey.getValue());
+            } catch (Exception e) {
+                System.out.println("Error reading registry path " + registryPath + ": " + e.getMessage());
+            }
+        }
+        return resultMap;
+    }
 }
 
-// Добавьте аналогичные методы для других типов информации
