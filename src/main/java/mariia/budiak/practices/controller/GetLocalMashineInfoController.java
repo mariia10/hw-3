@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.HashMap;
 import java.util.List;
 
 @RequestMapping(value = "local-mashine-register-info/", name = "считывание реестра непостредсвенно на компьютере")
@@ -59,6 +60,13 @@ public class GetLocalMashineInfoController {
 
         return registryService.getNetInfo(registryPath);
     }
+
+    @GetMapping("/operationSystemInfo")
+    @ApiOperation(value = "Вся информация об операционной системе")
+    public HashMap<String, List<String>> getOperationSystemInformation() {
+        return registryService.getInformationSystemInfo();
+    }
+
 }
 
 

@@ -1,14 +1,40 @@
 package mariia.budiak.practices.service;
 
+import com.sun.jna.Library;
+import com.sun.jna.Native;
 import com.sun.jna.platform.win32.Advapi32Util;
 import com.sun.jna.platform.win32.WinReg;
+import com.sun.jna.ptr.IntByReference;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class RegistryLocalHostInfoService {
+
+    private static final Map<String, String[]> constOsValue = new HashMap<>();
+
+    public static final int HKEY_LOCAL_MACHINE = 0x80000002;
+
+    static {
+        constOsValue.put("SYSTEM\\CurrentControlSet\\Control\\ComputerName", new String[]{"ComputerName"});
+        constOsValue.put("SYSTEM\\CurrentControlSet\\Control\\Windows", new String[]{"ShutdownTime"});
+        constOsValue.put("SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion", new String[]{"ProductName", "EditionID", "DisplayVersion", "CurrentBuild", "UBR", "InstallDate", "RegisteredOwner"});
+        constOsValue.put("SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation", new String[]{"TimeZone"});
+    }
+
+    public interface Advapi32 extends Library {
+        Advapi32 INSTANCE = Native.load("advapi32", Advapi32.class);
+
+        int RegOpenKeyExA(int hkey, String subKey, int ulOptions, int samDesired, int[] phkResult);
+
+        int RegQueryValueExA(int hkey, String lpValueName, int[] lpReserved, int[] lpType, byte[] lpData, IntByReference lpcbData);
+
+        void RegCloseKey(int hkey);
+    }
 
 
     public List<String> getUserInformation(String registryPath) {
@@ -64,6 +90,75 @@ public class RegistryLocalHostInfoService {
             }
         }
         return parameters;
+    }
+
+    public HashMap<String, List<String>> getInformationSystemInfo() {
+        var resultMap = new HashMap<String, List<String>>();
+        /*
+        String[] paths = {
+                "SYSTEM\\CurrentControlSet\\Control\\ComputerName",
+                "SYSTEM\\CurrentControlSet\\Control\\Windows",
+                "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",
+                "SYSTEM\\CurrentControlSet\\Control\\TimeZoneInformation"
+        };
+
+        String[] values = {
+                "ComputerName", "ShutdownTime",
+                "ProductName", "EditionID", "DisplayVersion",
+                "CurrentBuild", "UBR", "InstallDate", "RegisteredOwner",
+                "TimeZone"
+        };
+
+
+
+        for (String path : paths) {
+            for (String value : values) {
+                String result = getRegistryValue(path, value);
+                if (result != null) {
+                    System.out.println(path + "\\" + value + ": " + result);
+                }
+            }
+        }
+  */
+        for (Map.Entry<String, String[]> entry : constOsValue.entrySet()) {
+            String keyPath = entry.getKey();
+            String[] values = entry.getValue();
+
+            resultMap.put(keyPath, new ArrayList<>());
+            for (String valueName : values) {
+                try {
+                    String value = Advapi32Util.registryGetStringValue(WinReg.HKEY_LOCAL_MACHINE, keyPath, valueName);
+                    resultMap.get(keyPath).add(valueName + ": " + value);
+                } catch (Exception e) {
+                    resultMap.get(keyPath).add(("Error reading value: " + valueName + " from " + keyPath));
+                }
+            }
+        }
+        return resultMap;
+    }
+
+    public static String getRegistryValue(String subKey, String valueName) {
+        int[] hKeyResult = new int[1];
+        int openResult = Advapi32.INSTANCE.RegOpenKeyExA(HKEY_LOCAL_MACHINE, subKey, 0, 0x20019 /* KEY_READ */, hKeyResult);
+        if (openResult != 0) {
+            System.err.println("Failed to open registry key: " + openResult);
+            return null;
+        }
+
+        int[] type = new int[1];
+        byte[] data = new byte[1024]; // buffer for the data
+        IntByReference dataSize = new IntByReference(data.length);
+
+        int queryResult = Advapi32.INSTANCE.RegQueryValueExA(hKeyResult[0], valueName, null, type, data, dataSize);
+
+        Advapi32.INSTANCE.RegCloseKey(hKeyResult[0]); // Closing the registry key
+
+        if (queryResult != 0) {
+            System.err.println("Failed to query registry value: " + queryResult);
+            return null;
+        }
+
+        return Native.toString(data);
     }
 }
 
